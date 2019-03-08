@@ -1,6 +1,6 @@
 #include <MIDI.h>
 
-//#define DEBUG
+#define DEBUG
 
 #define MIDI_BAUD_RATE 31250
 #define MIDI_CHANNEL 1
@@ -12,7 +12,7 @@
   #define BAUD_RATE MIDI_BAUD_RATE
 #endif
 
-#define DELAY 0.5
+#define DELAY 500
 
 #define MEASURE_REPEAT_COUNT 50
 
@@ -119,15 +119,12 @@ void loop(){
     long int avgValue1 = 0;
     for (int i = 0; i < MEASURE_REPEAT_COUNT; i++) {
       avgValue1 += analogRead(IN_ANALOG_1);
-      delayMicroseconds(DELAY * 1000/MEASURE_REPEAT_COUNT);
+      delayMicroseconds(DELAY /MEASURE_REPEAT_COUNT);
     }
-    
     avgValue1 = (avgValue1 /MEASURE_REPEAT_COUNT);
-
     int midiValue1 = avgValue1 >> 3;
     analogWrite(OUT_ANALOG_1, avgValue1>>2);
     if (abs(midiValue1 - prevValue1) > 1) {
-      
       #ifdef DEBUG
         Serial.print(avgValue1, DEC);
         Serial.print(",");
@@ -140,7 +137,7 @@ void loop(){
   }
   else {
     analogWrite(OUT_ANALOG_1, 0);
-     delay(DELAY);
+    delayMicroseconds(DELAY);
   }
 }
 
