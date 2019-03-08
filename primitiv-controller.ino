@@ -1,6 +1,6 @@
 #include <MIDI.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define MIDI_BAUD_RATE 31250
 #define MIDI_CHANNEL 1
@@ -12,18 +12,10 @@
   #define BAUD_RATE MIDI_BAUD_RATE
 #endif
 
-#ifdef DEBUG
-  #define DELAY 0
-#else
-  #define DELAY 10
-#endif  
+#define DELAY 0.5
 
-/**
- * 2 analog in
- * 4 digital in
- * 4 digital out LED
- * 2 PWM out LED
- */
+#define MEASURE_REPEAT_COUNT 50
+
 #define IN_ANALOG_1 A0
 
 #define OUT_ANALOG_1 6 
@@ -125,13 +117,12 @@ void loop(){
   if (digitalRead(SWITCH_ANALOG_1)) {
     /**** ANALOG ****/
     long int avgValue1 = 0;
-    byte count= 10;
-    for (int i = 0; i < count; i++) {
+    for (int i = 0; i < MEASURE_REPEAT_COUNT; i++) {
       avgValue1 += analogRead(IN_ANALOG_1);
-      delay(1);
+      delayMicroseconds(DELAY * 1000/MEASURE_REPEAT_COUNT);
     }
     
-    avgValue1 = (avgValue1 /count);
+    avgValue1 = (avgValue1 /MEASURE_REPEAT_COUNT);
 
     int midiValue1 = avgValue1 >> 3;
     analogWrite(OUT_ANALOG_1, avgValue1>>2);
