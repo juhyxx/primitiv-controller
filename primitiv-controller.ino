@@ -1,6 +1,6 @@
 #include <MIDI.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define MIDI_BAUD_RATE 31250
 #define MIDI_CHANNEL 1
@@ -31,11 +31,11 @@
 #define OUT_DIGITAL_3 7
 #define OUT_DIGITAL_4 4
 
-struct MySettings : public midi::DefaultSettings {
+struct MidiSettings : public midi::DefaultSettings {
     static const bool UseRunningStatus = true;
 };
 
-MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial, MIDI, MySettings);
+MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial, MIDI, MidiSettings);
 
 
 void setup() {   
@@ -93,11 +93,6 @@ void loop(){
   if (digitalInput > prevDigitalInput) {
     byte oldDigitalValue = digitalValue;
     digitalValue = digitalInput ^ prevDigitalInput ^ digitalValue;
-
-    if ((digitalInput ^ 0b0011) == 0) {
-      autoMode();
-    }
-
     Serial.println(digitalInput, BIN);
 
     for (byte i = 0; i < 4; i++) {
@@ -138,18 +133,6 @@ void loop(){
   else {
     analogWrite(OUT_ANALOG_1, 0);
     delayMicroseconds(DELAY);
-  }
-}
-
-void autoMode() {
-  Serial.println("autoMode");
-  for (int i = 0; i <= 255; i++) {
-    analogWrite(OUT_ANALOG_1, i);
-    delay(2);
-  }
-  for (int i = 255; i > 0; i--) {
-    analogWrite(OUT_ANALOG_1, i);
-    delay(2);
   }
 }
 
