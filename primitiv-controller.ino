@@ -17,13 +17,12 @@
 #define MEASURE_REPEAT_COUNT 50
 
 #define IN_ANALOG_1 A0
-
 #define OUT_ANALOG_1 6 
 #define SWITCH_ANALOG_1 2
 
-#define IN_DIGITAL_1 13
-#define IN_DIGITAL_2 12
-#define IN_DIGITAL_3 11 
+#define IN_DIGITAL_1 15
+#define IN_DIGITAL_2 14
+#define IN_DIGITAL_3 16
 #define IN_DIGITAL_4 10
 
 #define OUT_DIGITAL_1 9 
@@ -36,7 +35,6 @@ struct MidiSettings : public midi::DefaultSettings {
 };
 
 MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial, MIDI, MidiSettings);
-
 
 void setup() {   
   Serial.begin(BAUD_RATE);
@@ -121,11 +119,9 @@ void loop(){
     analogWrite(OUT_ANALOG_1, avgValue1>>2);
     if (abs(midiValue1 - prevValue1) > 1) {
       #ifdef DEBUG
-        Serial.print(avgValue1, DEC);
-        Serial.print(",");
-        Serial.println(midiValue1, DEC);
+        Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
       #else
-        MIDI.sendControlChange(1,midiValue1, MIDI_CHANNEL);
+        MIDI.sendControlChange(1, midiValue1, MIDI_CHANNEL);
       #endif 
       prevValue1 = midiValue1;
     }
