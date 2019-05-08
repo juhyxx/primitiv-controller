@@ -1,23 +1,17 @@
-#include <MIDI.h>
+#include <MIDIUSB.h>
 
 //#define DEBUG
 
-#define MIDI_BAUD_RATE 31250
-#define MIDI_CHANNEL 1
+#define MIDI_CHANNEL 0
 #define MIDI_BASE_ID 41
-
-#ifdef DEBUG
-  #define BAUD_RATE 115200
-#else
-  #define BAUD_RATE MIDI_BAUD_RATE
-#endif
-
+#define MIDI_ANALOG_CONTROL 1
+#define BAUD_RATE 115200
 #define DELAY 500
 
 #define MEASURE_REPEAT_COUNT 50
 
 #define IN_ANALOG_1 A0
-#define OUT_ANALOG_1 6 
+#define OUT_ANALOG_1 6
 #define SWITCH_ANALOG_1 2
 
 #define IN_DIGITAL_1 15
@@ -25,18 +19,13 @@
 #define IN_DIGITAL_3 16
 #define IN_DIGITAL_4 10
 
-#define OUT_DIGITAL_1 9 
+#define OUT_DIGITAL_1 9
 #define OUT_DIGITAL_2 8
 #define OUT_DIGITAL_3 7
 #define OUT_DIGITAL_4 4
 
-struct MidiSettings : public midi::DefaultSettings {
-    static const bool UseRunningStatus = true;
-};
-
-MIDI_CREATE_CUSTOM_INSTANCE(HardwareSerial, Serial, MIDI, MidiSettings);
-
-void setup() {   
+void setup()
+{
   Serial.begin(BAUD_RATE);
 
   pinMode(IN_DIGITAL_1, INPUT_PULLUP);
@@ -44,7 +33,7 @@ void setup() {
   pinMode(IN_DIGITAL_3, INPUT_PULLUP);
   pinMode(IN_DIGITAL_4, INPUT_PULLUP);
   pinMode(SWITCH_ANALOG_1, INPUT_PULLUP);
-  
+
   pinMode(OUT_DIGITAL_1, OUTPUT);
   pinMode(OUT_DIGITAL_2, OUTPUT);
   pinMode(OUT_DIGITAL_3, OUTPUT);
@@ -53,13 +42,6 @@ void setup() {
   pinMode(IN_ANALOG_1, INPUT);
   pinMode(OUT_ANALOG_1, OUTPUT);
 
-  #ifdef DEBUG
-    Serial.write("MIDI channel: ");
-    Serial.println(MIDI_CHANNEL);
-  #else
-    MIDI.setHandleControlChange(onControlChange);
-    MIDI.begin(MIDI_CHANNEL); 
-  #endif 
   initTest();
 }
 byte digitalInputs[4] = {IN_DIGITAL_1, IN_DIGITAL_2, IN_DIGITAL_3, IN_DIGITAL_4};
@@ -67,96 +49,111 @@ byte digitalOutputs[4] = {OUT_DIGITAL_1, OUT_DIGITAL_2, OUT_DIGITAL_3, OUT_DIGIT
 int prevValue1 = 0;
 byte prevDigitalInput = 0, digitalValue = 0;
 
-void onControlChange(byte channel, byte number, byte value) {
-  if (channel == MIDI_CHANNEL) {
-    byte i = number - MIDI_BASE_ID;
-    byte bitValue = value > 64 ? 1 : 0;
+void loop()
+{
+ /* midiEventPacket_t rx;
+  do {
+    rx = MidiUSB.read();
+    if (rx.header != 0) {
+        byte type = rx.byte1 & 0xF0;
+        byte channel = rx.byte1 & 0x0F;
+        byte button = rx.byte2 - MIDI_BASE_ID;
+        byte value = rx.byte3 > 64;
 
-    digitalWrite(digitalOutputs[i], bitValue);
-  }
-}
+        Serial.print(" type: ");
+        Serial.print(rx.byte1 & 0xF0, HEX);
 
+        Serial.print(" channel: ");
+        Serial.print(rx.byte1 & 0x0F, DEC);
 
-void loop(){
-  #ifndef DEBUG
-   MIDI.read();
-  #endif
+        Serial.print(" button: ");
+        Serial.print(rx.byte2 - MIDI_BASE_ID, DEC);
+
+        Serial.print(" value: ");
+        Serial.println(rx.byte3 > 64, DEC);
+
+        if (type == 0xB0 && channel == MIDI_CHANNEL && button >= 0 && button < 4) {
+            Serial.print(" filtered ");
+            digitalWrite(digitalOutputs[button], value);
+        }
+    }
+  } while (rx.header != 0);*/
+
 
   /**** DIGITAL ****/
   byte digitalInput = 0;
 
-  for (byte i = 0; i < 4; i++) {
+  for (byte i = 0; i < 4; i++)
+  {
     bitWrite(digitalInput, i, !digitalRead(digitalInputs[i]));
   }
-  if (digitalInput > prevDigitalInput) {
+  if (digitalInput > prevDigitalInput)
+  {
     byte oldDigitalValue = digitalValue;
     digitalValue = digitalInput ^ prevDigitalInput ^ digitalValue;
     Serial.println(digitalInput, BIN);
-
-    for (byte i = 0; i < 4; i++) {
+    for (byte i = 0; i < 4; i++)
+    {
       byte bitValue = bitRead(digitalValue, i);
-      if (bitRead(oldDigitalValue, i) != bitValue) {
-        digitalWrite(digitalOutputs[i], bitValue);  
-        #ifndef DEBUG
-          MIDI.sendControlChange(MIDI_BASE_ID + i, bitValue ? 127 : 0, MIDI_CHANNEL);
-        #else
-          Serial.println(MIDI_BASE_ID + i);
-        #endif
+      if (bitRead(oldDigitalValue, i) != bitValue)
+      {
+        digitalWrite(digitalOutputs[i], bitValue);
+        midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_BASE_ID + i, bitValue ? 127 : 0};
+        MidiUSB.sendMIDI(event);
+        MidiUSB.flush();
+        Serial.println(MIDI_BASE_ID + i);
       }
     }
   }
   prevDigitalInput = digitalInput;
 
-  if (digitalRead(SWITCH_ANALOG_1)) {
+  if (digitalRead(SWITCH_ANALOG_1))
+  {
     /**** ANALOG ****/
     long int avgValue1 = 0;
-    for (int i = 0; i < MEASURE_REPEAT_COUNT; i++) {
+    for (int i = 0; i < MEASURE_REPEAT_COUNT; i++)
+    {
       avgValue1 += analogRead(IN_ANALOG_1);
-      delayMicroseconds(DELAY /MEASURE_REPEAT_COUNT);
+      delayMicroseconds(DELAY / MEASURE_REPEAT_COUNT);
     }
-    avgValue1 = (avgValue1 /MEASURE_REPEAT_COUNT);
+    avgValue1 = (avgValue1 / MEASURE_REPEAT_COUNT);
     int midiValue1 = avgValue1 >> 3;
-    analogWrite(OUT_ANALOG_1, avgValue1>>2);
-    if (abs(midiValue1 - prevValue1) > 1) {
-      #ifdef DEBUG
-        Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
-      #else
-        MIDI.sendControlChange(1, midiValue1, MIDI_CHANNEL);
-      #endif 
+    analogWrite(OUT_ANALOG_1, avgValue1 >> 2);
+    if (abs(midiValue1 - prevValue1) > 1)
+    {
+      Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
+      midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
+      MidiUSB.sendMIDI(event);
+      MidiUSB.flush();
       prevValue1 = midiValue1;
     }
   }
-  else {
+  else
+  {
     analogWrite(OUT_ANALOG_1, 0);
     delayMicroseconds(DELAY);
   }
 }
 
-void initTest() {
-  #ifdef DEBUG
-    Serial.println("Init test...");
-  #endif 
-   for (int i = 0; i <= 255; i+=5) {
-    analogWrite(OUT_ANALOG_1, i);
-    delay(25);
-  }
+void initTest()
+{
+  Serial.print("Init test...");
   digitalWrite(OUT_DIGITAL_1, HIGH);
   digitalWrite(OUT_DIGITAL_2, HIGH);
   digitalWrite(OUT_DIGITAL_3, HIGH);
   digitalWrite(OUT_DIGITAL_4, HIGH);
-  delay(300);
-  digitalWrite(OUT_DIGITAL_4, LOW);
+  for (int i = 0; i <= 255; i += 5)
+  {
+    analogWrite(OUT_ANALOG_1, i);
+    delay(150);
+  }
+  analogWrite(OUT_ANALOG_1, 0);
   delay(100);
+  digitalWrite(OUT_DIGITAL_4, LOW);
   digitalWrite(OUT_DIGITAL_3, LOW);
   delay(100);
   digitalWrite(OUT_DIGITAL_2, LOW);
   delay(100);
   digitalWrite(OUT_DIGITAL_1, LOW);
-  delay(100);
-  analogWrite(OUT_ANALOG_1, 0);
-  delay(200);
-  
-  #ifdef DEBUG
-    Serial.println("init test done.");
-  #endif 
+  Serial.println("Done.");
 }
