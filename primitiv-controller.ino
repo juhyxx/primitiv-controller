@@ -51,38 +51,30 @@ byte prevDigitalInput = 0, digitalValue = 0;
 
 void loop()
 {
- /* midiEventPacket_t rx;
+  byte digitalInput = 0;
+  midiEventPacket_t rx;
+
+  /**** MIDI input ****/
   do {
     rx = MidiUSB.read();
     if (rx.header != 0) {
         byte type = rx.byte1 & 0xF0;
         byte channel = rx.byte1 & 0x0F;
-        byte button = rx.byte2 - MIDI_BASE_ID;
-        byte value = rx.byte3 > 64;
+        byte data =  rx.byte2;
+        byte button = data - MIDI_BASE_ID;
+        byte value = rx.byte3;
 
-        Serial.print(" type: ");
-        Serial.print(rx.byte1 & 0xF0, HEX);
-
-        Serial.print(" channel: ");
-        Serial.print(rx.byte1 & 0x0F, DEC);
-
-        Serial.print(" button: ");
-        Serial.print(rx.byte2 - MIDI_BASE_ID, DEC);
-
-        Serial.print(" value: ");
-        Serial.println(rx.byte3 > 64, DEC);
-
-        if (type == 0xB0 && channel == MIDI_CHANNEL && button >= 0 && button < 4) {
-            Serial.print(" filtered ");
-            digitalWrite(digitalOutputs[button], value);
+        if (type == 0xB0 && channel == MIDI_CHANNEL) {
+          if (button >= 0 && button < 4) {
+            bitWrite(digitalValue, button, value > 64);
+            digitalWrite(digitalOutputs[button], value > 64);
+          }
         }
     }
-  } while (rx.header != 0);*/
+  } while (rx.header != 0);
 
 
   /**** DIGITAL ****/
-  byte digitalInput = 0;
-
   for (byte i = 0; i < 4; i++)
   {
     bitWrite(digitalInput, i, !digitalRead(digitalInputs[i]));
@@ -91,7 +83,7 @@ void loop()
   {
     byte oldDigitalValue = digitalValue;
     digitalValue = digitalInput ^ prevDigitalInput ^ digitalValue;
-    Serial.println(digitalInput, BIN);
+    //Serial.println(digitalInput, BIN);
     for (byte i = 0; i < 4; i++)
     {
       byte bitValue = bitRead(digitalValue, i);
@@ -101,15 +93,16 @@ void loop()
         midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_BASE_ID + i, bitValue ? 127 : 0};
         MidiUSB.sendMIDI(event);
         MidiUSB.flush();
-        Serial.println(MIDI_BASE_ID + i);
+        //Serial.println(MIDI_BASE_ID + i);
       }
     }
   }
   prevDigitalInput = digitalInput;
 
+
+  /**** ANALOG ****/
   if (digitalRead(SWITCH_ANALOG_1))
   {
-    /**** ANALOG ****/
     long int avgValue1 = 0;
     for (int i = 0; i < MEASURE_REPEAT_COUNT; i++)
     {
@@ -121,7 +114,7 @@ void loop()
     analogWrite(OUT_ANALOG_1, avgValue1 >> 2);
     if (abs(midiValue1 - prevValue1) > 1)
     {
-      Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
+     //Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
       midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
       MidiUSB.sendMIDI(event);
       MidiUSB.flush();
@@ -137,23 +130,30 @@ void loop()
 
 void initTest()
 {
-  Serial.print("Init test...");
+  int interval = 700;
+
+  //Serial.print("Init test...");
   digitalWrite(OUT_DIGITAL_1, HIGH);
   digitalWrite(OUT_DIGITAL_2, HIGH);
   digitalWrite(OUT_DIGITAL_3, HIGH);
   digitalWrite(OUT_DIGITAL_4, HIGH);
-  for (int i = 0; i <= 255; i += 5)
-  {
-    analogWrite(OUT_ANALOG_1, i);
-    delay(150);
-  }
+  analogWrite(OUT_ANALOG_1, 255);
+  delay(interval);
+  analogWrite(OUT_ANALOG_1, 100);
+  delay(interval);
+  analogWrite(OUT_ANALOG_1, 50);
+  delay(interval);
+  analogWrite(OUT_ANALOG_1, 5);
+  delay(interval);
   analogWrite(OUT_ANALOG_1, 0);
-  delay(100);
+  delay(interval);
   digitalWrite(OUT_DIGITAL_4, LOW);
+  delay(interval);
   digitalWrite(OUT_DIGITAL_3, LOW);
-  delay(100);
+  delay(interval);
   digitalWrite(OUT_DIGITAL_2, LOW);
-  delay(100);
+  delay(interval);
   digitalWrite(OUT_DIGITAL_1, LOW);
-  Serial.println("Done.");
+  delay(interval);
+  //Serial.println("Done.");
 }
