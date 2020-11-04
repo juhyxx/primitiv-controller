@@ -48,6 +48,8 @@ byte digitalInputs[4] = {IN_DIGITAL_1, IN_DIGITAL_2, IN_DIGITAL_3, IN_DIGITAL_4}
 byte digitalOutputs[4] = {OUT_DIGITAL_1, OUT_DIGITAL_2, OUT_DIGITAL_3, OUT_DIGITAL_4};
 int prevValue1 = 0;
 byte prevDigitalInput = 0, digitalValue = 0;
+int pedalValue = 0;
+unsigned long pedalStart = 0;
 
 void loop()
 {
@@ -109,16 +111,35 @@ void loop()
       avgValue1 += analogRead(IN_ANALOG_1);
       delayMicroseconds(DELAY / MEASURE_REPEAT_COUNT);
     }
-
     avgValue1 = (avgValue1 / MEASURE_REPEAT_COUNT);
     int midiValue1 = avgValue1 >> 3;
+
     analogWrite(OUT_ANALOG_1, avgValue1 >> 2);
+   
+     
     if (abs(midiValue1 - prevValue1) > 1)
     {
-     Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
+     //Serial.println(String(midiValue1, DEC));
+     if (midiValue1 > 125) {
+          long int diff = micros() - pedalStart;
+          if (diff < 200000) {
+              pedalValue = pedalValue == 127 ? 0 : 127;
+              midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_BASE_ID - 4, pedalValue};
+              MidiUSB.sendMIDI(event);
+              MidiUSB.flush();
+              
+            }
+            //Serial.println(diff / 1000);
+
+      }
+       if (midiValue1 < 2) {
+        pedalStart = micros();
+      }
+    
       midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
       MidiUSB.sendMIDI(event);
       MidiUSB.flush();
+   
       prevValue1 = midiValue1;
     }
   }
