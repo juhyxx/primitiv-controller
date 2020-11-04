@@ -3,7 +3,7 @@
 //#define DEBUG
 
 #define MIDI_CHANNEL 0
-#define MIDI_BASE_ID 41
+#define MIDI_BASE_ID 44
 #define MIDI_ANALOG_CONTROL 1
 #define BAUD_RATE 115200
 #define DELAY 500
@@ -90,7 +90,7 @@ void loop()
       if (bitRead(oldDigitalValue, i) != bitValue)
       {
         digitalWrite(digitalOutputs[i], bitValue);
-        midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_BASE_ID + i, bitValue ? 127 : 0};
+        midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_BASE_ID - i, bitValue ? 127 : 0};
         MidiUSB.sendMIDI(event);
         MidiUSB.flush();
         //Serial.println(MIDI_BASE_ID + i);
@@ -109,12 +109,13 @@ void loop()
       avgValue1 += analogRead(IN_ANALOG_1);
       delayMicroseconds(DELAY / MEASURE_REPEAT_COUNT);
     }
+
     avgValue1 = (avgValue1 / MEASURE_REPEAT_COUNT);
     int midiValue1 = avgValue1 >> 3;
     analogWrite(OUT_ANALOG_1, avgValue1 >> 2);
     if (abs(midiValue1 - prevValue1) > 1)
     {
-     //Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
+     Serial.println(String(avgValue1, DEC) + "," + String(midiValue1, DEC));
       midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
       MidiUSB.sendMIDI(event);
       MidiUSB.flush();
