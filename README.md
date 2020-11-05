@@ -21,6 +21,6 @@ MIDI channel: 1
  
 
  
- ![Photo](/IMG_0355 (1).jpeg)
+ ![Photo](/photo.jpeg)
  
 ![Scheme](/primitiv-controller_schem.png)
