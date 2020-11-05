@@ -17,4 +17,5 @@ MIDI channel: 1
  
  continues controller (volume/expression pedal)
  - control 1
+ - control 41 - fast switch of expression pedal
  
