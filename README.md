@@ -19,4 +19,8 @@ MIDI channel: 1
  - control 1
  - control 41 - fast switch of expression pedal
  
+
+ 
+ ![Photo](/IMG_0355 (1).jpeg)
+ 
 ![Scheme](/primitiv-controller_schem.png)
