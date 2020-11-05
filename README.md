@@ -3,6 +3,7 @@
 
 For use with:
 * Line 6 pod app
+* Bias FX 2
 * vst keyboards
 
 ## Description
