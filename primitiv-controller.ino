@@ -1,6 +1,6 @@
 #include <MIDIUSB.h>
 
-#define DEBUG
+//#define DEBUG
 
 #define MIDI_CHANNEL 0
 #define MIDI_BASE_ID 44
