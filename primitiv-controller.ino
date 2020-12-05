@@ -1,6 +1,6 @@
 #include <MIDIUSB.h>
 
-//#define DEBUG
+#define DEBUG
 
 #define MIDI_CHANNEL 0
 #define MIDI_BASE_ID 44
@@ -153,7 +153,8 @@ void loop()
       break;
 
     case PEDAL_STATE_PREPARED:
-      if (upWaitingTime > 300000) {
+      if (upWaitingTime > 300000)
+      {
         pedalState = PEDAL_STATE_ON;
       }
       break;
@@ -166,14 +167,15 @@ void loop()
       pedalState = PEDAL_STATE_OFF;
       break;
     }
-
-    #ifdef DEBUG
+    if (abs(midiValue1 - prevMidiValue) > 1)
+    {
+      midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
+      MidiUSB.sendMIDI(event);
+      MidiUSB.flush();
+    }
+#ifdef DEBUG
     Serial.println(String("PEDALstate:") + pedalState);
-    #endif
-
-    midiEventPacket_t event = {0x0B, 0xB0 | MIDI_CHANNEL, MIDI_ANALOG_CONTROL, midiValue1};
-    MidiUSB.sendMIDI(event);
-    MidiUSB.flush();
+#endif
 
     prevMidiValue = midiValue1;
   }
